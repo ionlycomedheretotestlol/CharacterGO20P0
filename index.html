@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CharacterGO!</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #08080e;
+    --surface: #111118;
+    --card: #16161f;
+    --accent: #c084fc;
+    --accent2: #818cf8;
+    --hot: #f472b6;
+    --text: #f1f0ff;
+    --muted: #6b6b8a;
+    --border: #2a2a3d;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── HERO ─── */
+  #hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+    position: relative;
+    transition: min-height 0.5s cubic-bezier(.77,0,.18,1), padding 0.5s cubic-bezier(.77,0,.18,1);
+  }
+
+  #hero.shrunk {
+    min-height: 0;
+    padding: 1.2rem 1.5rem 1rem;
+  }
+
+  /* bg noise grain */
+  #hero::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ambient glow */
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.18;
+  }
+  .glow-orb.a { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; animation: drift 8s ease-in-out infinite alternate; }
+  .glow-orb.b { width: 300px; height: 300px; background: var(--accent2); bottom: -80px; right: -80px; animation: drift 10s ease-in-out infinite alternate-reverse; }
+  .glow-orb.c { width: 200px; height: 200px; background: var(--hot); top: 40%; right: 10%; animation: drift 12s ease-in-out infinite alternate; }
+
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(30px, 20px) scale(1.1); }
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  /* logo icon */
+  .logo-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 1rem;
+    position: relative;
+    transition: all 0.5s cubic-bezier(.77,0,.18,1);
+  }
+
+  #hero.shrunk .logo-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 0.4rem;
+  }
+
+  .logo-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .logo-star {
+    animation: spin-slow 12s linear infinite;
+    transform-origin: center;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .logo-text {
+    font-size: clamp(2.4rem, 9vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    transition: all 0.5s cubic-bezier(.77,0,.18,1);
+  }
+
+  #hero.shrunk .logo-text {
+    font-size: 1.4rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .logo-text .char { color: var(--text); }
+  .logo-text .go {
+    color: var(--accent);
+    position: relative;
+  }
+  .logo-text .bang {
+    color: var(--hot);
+    display: inline-block;
+    animation: bang-bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes bang-bounce {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-4px) rotate(8deg); }
+  }
+
+  .tagline {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    transition: all 0.5s cubic-bezier(.77,0,.18,1);
+  }
+
+  #hero.shrunk .tagline {
+    font-size: 0;
+    margin-bottom: 0.6rem;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ─── SEARCH BAR ─── */
+  .search-wrap {
+    width: 100%;
+    position: relative;
+  }
+
+  .search-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 0 0 0 1.2rem;
+    gap: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.12), 0 0 30px rgba(192, 132, 252, 0.08);
+  }
+
+  .search-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    padding: 1rem 0;
+    min-width: 0;
+  }
+
+  .search-bar input::placeholder { color: var(--muted); }
+
+  .search-btn {
+    width: 52px;
+    height: 52px;
+    margin: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+
+  .search-btn:active { transform: scale(0.92); }
+
+  .search-btn svg { width: 20px; height: 20px; }
+
+  .hints {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    transition: all 0.4s;
+  }
+
+  #hero.shrunk .hints { display: none; }
+
+  .hint-chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .hint-chip:hover, .hint-chip:active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(192,132,252,0.07);
+  }
+
+  /* ─── STATUS BAR ─── */
+  #status-bar {
+    position: relative;
+    z-index: 1;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  #status-bar.visible { display: flex; }
+
+  .status-count { color: var(--accent); font-weight: 700; }
+
+  /* ─── GRID ─── */
+  #grid-wrap {
+    padding: 0.5rem 0.75rem 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  #grid {
+    columns: 2;
+    column-gap: 0.6rem;
+  }
+
+  @media (min-width: 600px) { #grid { columns: 3; } }
+  @media (min-width: 900px) { #grid { columns: 4; } }
+
+  .img-card {
+    break-inside: avoid;
+    margin-bottom: 0.6rem;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    background: var(--card);
+    cursor: pointer;
+    animation: card-in 0.4s cubic-bezier(.34,1.56,.64,1) both;
+    border: 1px solid transparent;
+    transition: border-color 0.2s, transform 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform;
+  }
+
+  .img-card:active { transform: scale(0.97); }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .img-card img {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    transition: transform 0.3s cubic-bezier(.25,.46,.45,.94);
+    background: var(--card);
+  }
+
+  .img-card:hover img { transform: scale(1.03); }
+
+  /* tap flash */
+  .img-card.tapped-once::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 2px solid var(--accent);
+    animation: tap-pulse 0.35s ease forwards;
+    pointer-events: none;
+  }
+
+  .img-card.tapped-twice::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 2px solid var(--hot);
+    box-shadow: inset 0 0 20px rgba(244,114,182,0.15);
+    pointer-events: none;
+  }
+
+  @keyframes tap-pulse {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.04); }
+  }
+
+  /* hold progress ring */
+  .hold-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hold-ring .hold-ring-fill {
+    fill: none;
+    stroke: var(--hot);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 163;
+    stroke-dashoffset: 163;
+    transform-origin: 30px 30px;
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 0 6px var(--hot));
+  }
+
+  .hold-ring-bg {
+    fill: none;
+    stroke: rgba(244,114,182,0.15);
+    stroke-width: 3;
+  }
+
+  /* ─── COG DOWNLOAD OVERLAY ─── */
+  .cog-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: rgba(8, 8, 14, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    animation: cog-in 0.2s ease forwards;
+    pointer-events: none;
+  }
+
+  @keyframes cog-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .cog-svg {
+    width: 52px;
+    height: 52px;
+    filter: drop-shadow(0 0 12px var(--accent));
+  }
+
+  .cog-main {
+    animation: cog-spin 0.6s linear infinite;
+    transform-origin: 24px 24px;
+  }
+
+  .cog-inner {
+    animation: cog-spin-rev 0.8s linear infinite;
+    transform-origin: 24px 24px;
+  }
+
+  @keyframes cog-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes cog-spin-rev {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+
+  .cog-done {
+    animation: cog-done-pop 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+
+  @keyframes cog-done-pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ─── LOAD MORE ─── */
+  #load-more-wrap {
+    display: none;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  #load-more-wrap.visible { display: flex; }
+
+  #load-more {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--surface);
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 0.75rem 2rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, transform 0.15s;
+  }
+
+  #load-more:active { transform: scale(0.96); background: rgba(192,132,252,0.1); }
+
+  /* ─── SPINNER ─── */
+  #spinner {
+    display: none;
+    justify-content: center;
+    padding: 3rem;
+  }
+  #spinner.visible { display: flex; }
+
+  .spin-ring {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: ring-spin 0.7s linear infinite;
+  }
+
+  @keyframes ring-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ─── EMPTY ─── */
+  #empty {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 2rem;
+    gap: 0.75rem;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  #empty.visible { display: flex; }
+  #empty .e-icon { font-size: 2.5rem; }
+
+  /* ─── TOAST ─── */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--card);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 0 20px rgba(192,132,252,0.2);
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* stagger animation delays */
+  .img-card:nth-child(1) { animation-delay: 0ms; }
+  .img-card:nth-child(2) { animation-delay: 30ms; }
+  .img-card:nth-child(3) { animation-delay: 60ms; }
+  .img-card:nth-child(4) { animation-delay: 90ms; }
+  .img-card:nth-child(5) { animation-delay: 120ms; }
+  .img-card:nth-child(6) { animation-delay: 150ms; }
+  .img-card:nth-child(7) { animation-delay: 180ms; }
+  .img-card:nth-child(8) { animation-delay: 210ms; }
+  .img-card:nth-child(9) { animation-delay: 240ms; }
+  .img-card:nth-child(10) { animation-delay: 270ms; }
+</style>
+</head>
+<body>
+
+<!-- ambient orbs -->
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+<div class="glow-orb c"></div>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="hero-inner">
+
+    <div class="logo-icon">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g class="logo-star">
+          <circle cx="24" cy="24" r="5" fill="#c084fc"/>
+          <rect x="22.5" y="4" width="3" height="10" rx="1.5" fill="#c084fc" opacity="0.8"/>
+          <rect x="22.5" y="34" width="3" height="10" rx="1.5" fill="#c084fc" opacity="0.8"/>
+          <rect x="4" y="22.5" width="10" height="3" rx="1.5" fill="#c084fc" opacity="0.8"/>
+          <rect x="34" y="22.5" width="10" height="3" rx="1.5" fill="#c084fc" opacity="0.8"/>
+          <rect x="9.5" y="8.1" width="3" height="10" rx="1.5" fill="#818cf8" opacity="0.6" transform="rotate(45 11 13)"/>
+          <rect x="27.5" y="28.1" width="3" height="10" rx="1.5" fill="#818cf8" opacity="0.6" transform="rotate(45 29 33)"/>
+          <rect x="28.1" y="9.5" width="10" height="3" rx="1.5" fill="#f472b6" opacity="0.6" transform="rotate(45 33 11)"/>
+          <rect x="8.1" y="27.5" width="10" height="3" rx="1.5" fill="#f472b6" opacity="0.6" transform="rotate(45 13 29)"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="logo-text">
+      <span class="char">Character</span><span class="go">GO</span><span class="bang">!</span>
+    </div>
+
+    <div class="tagline">search · discover · download</div>
+
+    <div class="search-wrap">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search characters, OCs, tags..." autocomplete="off" autocorrect="off" spellcheck="false"/>
+        <button class="search-btn" id="search-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="hints" id="hints">
+        <span class="hint-chip" data-q="original character">original character</span>
+        <span class="hint-chip" data-q="anime girl">anime girl</span>
+        <span class="hint-chip" data-q="demon">demon</span>
+        <span class="hint-chip" data-q="elf">elf</span>
+        <span class="hint-chip" data-q="catgirl">catgirl</span>
+        <span class="hint-chip" data-q="fantasy">fantasy</span>
+        <span class="hint-chip" data-q="maid">maid</span>
+        <span class="hint-chip" data-q="witch">witch</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS -->
+<div id="status-bar">
+  <span id="status-text">Ready</span>
+  <span class="status-count" id="result-count"></span>
+</div>
+
+<!-- SPINNER -->
+<div id="spinner"><div class="spin-ring"></div></div>
+
+<!-- EMPTY -->
+<div id="empty">
+  <span class="e-icon">🌌</span>
+  <span>Nothing found. Try different tags.</span>
+</div>
+
+<!-- GRID -->
+<div id="grid-wrap">
+  <div id="grid"></div>
+</div>
+
+<!-- LOAD MORE -->
+<div id="load-more-wrap">
+  <button id="load-more">load more</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast" id="toast"></div>
+
+<script>
+const DANBOORU_BASE = 'https://danbooru.donmai.us';
+const PER_PAGE = 40;
+
+let currentQuery = '';
+let currentPage = 1;
+let totalLoaded = 0;
+let loading = false;
+let tapTimers = {};
+
+const hero = document.getElementById('hero');
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const grid = document.getElementById('grid');
+const gridWrap = document.getElementById('grid-wrap');
+const spinner = document.getElementById('spinner');
+const emptyEl = document.getElementById('empty');
+const statusBar = document.getElementById('status-bar');
+const statusText = document.getElementById('status-text');
+const resultCount = document.getElementById('result-count');
+const loadMoreWrap = document.getElementById('load-more-wrap');
+const loadMoreBtn = document.getElementById('load-more');
+const toast = document.getElementById('toast');
+
+// hint chips
+document.querySelectorAll('.hint-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    searchInput.value = chip.dataset.q;
+    doSearch();
+  });
+});
+
+searchBtn.addEventListener('click', doSearch);
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+loadMoreBtn.addEventListener('click', loadMore);
+
+function showToast(msg, duration = 2000) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+async function doSearch() {
+  const q = searchInput.value.trim();
+  if (!q || loading) return;
+  currentQuery = q;
+  currentPage = 1;
+  totalLoaded = 0;
+  grid.innerHTML = '';
+  loadMoreWrap.classList.remove('visible');
+  emptyEl.classList.remove('visible');
+  hero.classList.add('shrunk');
+  statusBar.classList.add('visible');
+  statusText.textContent = `searching "${q}"...`;
+  resultCount.textContent = '';
+  await fetchAndRender(true);
+}
+
+async function loadMore() {
+  if (loading) return;
+  currentPage++;
+  await fetchAndRender(false);
+}
+
+async function fetchAndRender(fresh) {
+  loading = true;
+  spinner.classList.add('visible');
+  loadMoreWrap.classList.remove('visible');
+
+  // convert query to danbooru tags (spaces → underscores, multi-word → joined)
+  const tags = currentQuery.toLowerCase().split(/\s+/).map(t => t.replace(/[^a-z0-9_]/g, '_')).join('+');
+
+  const url = `${DANBOORU_BASE}/posts.json?tags=${tags}+rating:g&limit=${PER_PAGE}&page=${currentPage}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error');
+    const posts = await res.json();
+
+    spinner.classList.remove('visible');
+
+    const valid = posts.filter(p => p.large_file_url || p.file_url || p.preview_file_url);
+
+    if (fresh && valid.length === 0) {
+      emptyEl.classList.add('visible');
+      statusText.textContent = `no results for "${currentQuery}"`;
+      loading = false;
+      return;
+    }
+
+    valid.forEach((post, i) => {
+      const imgUrl = post.large_file_url || post.file_url || post.preview_file_url;
+      if (!imgUrl || imgUrl.endsWith('.mp4') || imgUrl.endsWith('.webm') || imgUrl.endsWith('.zip')) return;
+
+      const card = document.createElement('div');
+      card.className = 'img-card';
+      card.style.animationDelay = `${(i % 20) * 25}ms`;
+
+      const img = document.createElement('img');
+      img.src = post.preview_file_url || imgUrl;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = post.tag_string_character || post.tag_string_general?.split(' ').slice(0,3).join(', ') || 'character art';
+
+      // lazy load full res on intersect
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            img.src = imgUrl;
+            observer.disconnect();
+          }
+        });
+      }, { rootMargin: '200px' });
+      observer.observe(img);
+
+      card.appendChild(img);
+      grid.appendChild(card);
+
+      // double-tap to download
+      setupDoubleTap(card, imgUrl, post);
+    });
+
+    totalLoaded += valid.length;
+    resultCount.textContent = `${totalLoaded} images`;
+    statusText.textContent = `"${currentQuery}"`;
+
+    if (valid.length === PER_PAGE) {
+      loadMoreWrap.classList.add('visible');
+    }
+
+  } catch (err) {
+    spinner.classList.remove('visible');
+    statusText.textContent = 'something went wrong — try again';
+    console.error(err);
+  }
+
+  loading = false;
+}
+
+function setupDoubleTap(card, imgUrl, post) {
+  let tapCount = 0;
+  let tapTimer = null;
+  let holdTimer = null;
+  let holdRing = null;
+  let holdStartTime = null;
+  let rafId = null;
+  let readyToHold = false;
+
+  const HOLD_DURATION = 1000; // 1 second hold
+  const TAP_WINDOW = 400;     // ms between taps
+
+  function resetState() {
+    tapCount = 0;
+    readyToHold = false;
+    card.classList.remove('tapped-once', 'tapped-twice');
+    clearTimeout(tapTimer);
+    clearTimeout(holdTimer);
+    cancelAnimationFrame(rafId);
+    if (holdRing) { holdRing.remove(); holdRing = null; }
+  }
+
+  function showHoldRing() {
+    holdRing = document.createElement('div');
+    holdRing.className = 'hold-ring';
+    holdRing.innerHTML = `
+      <svg viewBox="0 0 60 60" width="60" height="60">
+        <circle class="hold-ring-bg" cx="30" cy="30" r="26"/>
+        <circle class="hold-ring-fill" cx="30" cy="30" r="26"/>
+      </svg>`;
+    card.appendChild(holdRing);
+  }
+
+  function animateRing(elapsed) {
+    if (!holdRing) return;
+    const circ = holdRing.querySelector('.hold-ring-fill');
+    if (!circ) return;
+    const progress = Math.min(elapsed / HOLD_DURATION, 1);
+    const dashLen = 163;
+    circ.style.strokeDashoffset = dashLen - (dashLen * progress);
+    circ.style.stroke = progress > 0.7 ? 'var(--accent)' : 'var(--hot)';
+    if (progress < 1) {
+      rafId = requestAnimationFrame(() => animateRing(Date.now() - holdStartTime));
+    }
+  }
+
+  function onTouchStart(e) {
+    if (tapCount === 0) {
+      // first tap
+      tapCount = 1;
+      card.classList.add('tapped-once');
+      setTimeout(() => card.classList.remove('tapped-once'), 350);
+
+      tapTimer = setTimeout(() => {
+        if (tapCount < 2) resetState();
+      }, TAP_WINDOW);
+
+    } else if (tapCount === 1) {
+      // second tap — now wait for hold
+      e.preventDefault();
+      clearTimeout(tapTimer);
+      tapCount = 2;
+      readyToHold = true;
+      card.classList.add('tapped-twice');
+      showToast('hold to download ⬇', 1200);
+
+      // start hold timer
+      holdStartTime = Date.now();
+      showHoldRing();
+      rafId = requestAnimationFrame(() => animateRing(Date.now() - holdStartTime));
+
+      holdTimer = setTimeout(() => {
+        if (readyToHold) {
+          cancelAnimationFrame(rafId);
+          if (holdRing) { holdRing.remove(); holdRing = null; }
+          card.classList.remove('tapped-twice');
+          triggerDownload(card, imgUrl, post);
+          tapCount = 0;
+          readyToHold = false;
+        }
+      }, HOLD_DURATION);
+    }
+  }
+
+  function onTouchEnd(e) {
+    if (tapCount === 2 && readyToHold) {
+      // released before hold completed — cancel
+      const elapsed = Date.now() - holdStartTime;
+      if (elapsed < HOLD_DURATION) {
+        clearTimeout(holdTimer);
+        cancelAnimationFrame(rafId);
+        if (holdRing) { holdRing.remove(); holdRing = null; }
+        card.classList.remove('tapped-twice');
+        showToast('hold longer to download', 1200);
+        // reset after short delay
+        setTimeout(resetState, 500);
+      }
+    }
+  }
+
+  card.addEventListener('touchstart', onTouchStart, { passive: false });
+  card.addEventListener('touchend', onTouchEnd, { passive: true });
+
+  // desktop: double-click then hold via mousedown
+  let dblClickReady = false;
+  card.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    dblClickReady = true;
+    card.classList.add('tapped-twice');
+    showToast('hold to download ⬇', 1200);
+    holdStartTime = Date.now();
+    showHoldRing();
+    rafId = requestAnimationFrame(() => animateRing(Date.now() - holdStartTime));
+    holdTimer = setTimeout(() => {
+      if (dblClickReady) {
+        cancelAnimationFrame(rafId);
+        if (holdRing) { holdRing.remove(); holdRing = null; }
+        card.classList.remove('tapped-twice');
+        triggerDownload(card, imgUrl, post);
+        dblClickReady = false;
+      }
+    }, HOLD_DURATION);
+  });
+
+  card.addEventListener('mouseup', () => {
+    if (dblClickReady) {
+      clearTimeout(holdTimer);
+      cancelAnimationFrame(rafId);
+      if (holdRing) { holdRing.remove(); holdRing = null; }
+      card.classList.remove('tapped-twice');
+      dblClickReady = false;
+      setTimeout(resetState, 100);
+    }
+  });
+}
+
+function triggerDownload(card, imgUrl, post) {
+  // add cog overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'cog-overlay';
+  overlay.innerHTML = `
+    <svg class="cog-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g class="cog-main">
+        <path d="M24 4L26.5 9.5L32 7L32 13L38 14L35 19L40 24L35 29L38 34L32 35L32 41L26.5 38.5L24 44L21.5 38.5L16 41L16 35L10 34L13 29L8 24L13 19L10 14L16 13L16 7L21.5 9.5Z" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="24" cy="24" r="6" fill="none" stroke="#c084fc" stroke-width="2.5"/>
+      </g>
+      <g class="cog-inner">
+        <circle cx="24" cy="24" r="3" fill="#f472b6"/>
+      </g>
+    </svg>
+  `;
+  card.appendChild(overlay);
+
+  // fetch and download
+  fetch(imgUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      // swap cog to checkmark
+      overlay.innerHTML = `
+        <svg class="cog-svg cog-done" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" fill="rgba(192,132,252,0.15)" stroke="#c084fc" stroke-width="2"/>
+          <path d="M14 24L21 31L34 17" stroke="#c084fc" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+
+      const ext = imgUrl.split('.').pop().split('?')[0] || 'jpg';
+      const fname = `charactergo_${post.id || Date.now()}.${ext}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('✦ saved to downloads');
+
+      setTimeout(() => {
+        overlay.style.transition = 'opacity 0.3s';
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 300);
+      }, 700);
+    })
+    .catch(() => {
+      overlay.remove();
+      showToast('download failed — try long pressing the image');
+    });
+}
+</script>
+</body>
+</html>
